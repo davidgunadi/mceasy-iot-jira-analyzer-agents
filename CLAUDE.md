@@ -1,8 +1,8 @@
 # McEasy SVCENG Device-Ticket Analysis
 
 This project uses Claude Code's multi-agent system to run a retrospective, health-scan
-analysis over SVCENG Jira tickets labelled `issue_device`, created since the start of the
-year (~169 tickets). It answers three questions at once:
+analysis over any set of Jira tickets matching a user-supplied JQL query. It answers three
+questions at once:
 
 1. **Patterns** — repeat customers, repeat devices, recurring symptom categories.
 2. **RCA discipline** — do tickets contain a sufficient root-cause analysis, or do they
@@ -11,8 +11,8 @@ year (~169 tickets). It answers three questions at once:
 
 The pipeline is designed so that the heavy work (fetching full ticket bodies + comments)
 happens **inside subagents**, whose contexts are isolated from the orchestrator. The
-orchestrator only ever sees compact summaries, so the main context stays small even across
-~169 tickets. Each batch is re-runnable in isolation ("tweak and repeat").
+orchestrator only ever sees compact summaries, so the main context stays small regardless of
+ticket volume. Each batch is re-runnable in isolation ("tweak and repeat").
 
 ---
 
@@ -23,7 +23,7 @@ Agents live in `.claude/agents/`. Each is a markdown file with a YAML frontmatte
 | Agent | Model | Role |
 |---|---|---|
 | `ticket-indexer` | sonnet | Runs the JQL once, lists all matching ticket keys, partitions them into batches. Writes `outputs/ticket-index.md`. |
-| `ticket-extractor` | sonnet | Invoked **once per batch**. Fetches each ticket's title + description + comments, extracts one structured record per ticket against the frozen schema below. Writes `outputs/batches/batch-NN.md`. |
+| `ticket-extractor` | sonnet | Invoked **once per batch**. Fetches each ticket's title + description + comments, extracts one structured record per ticket against the frozen schema below. Writes `outputs/batches/batch-NN.md` (temporary — deleted by `build_dataset.py` after merge). |
 | `aggregator` | sonnet | Runs the scripts in `./scripts/` to merge batch files and compute all counts deterministically (repeat customers/devices, category frequencies, RCA rates). Writes `outputs/aggregates.md`. |
 | `analyst` | opus | Reads the merged dataset + aggregates and writes the final insight report: patterns, RCA gaps, prioritised recommendations. Writes `outputs/report.md`. |
 
@@ -40,7 +40,7 @@ Agents live in `.claude/agents/`. Each is a markdown file with a YAML frontmatte
 ## Pipeline Order
 
 ```
-/analyze-svceng-devices
+/analyze-svceng-devices  [user supplies JQL]
       ↓
 @ticket-indexer            → outputs/ticket-index.md  (all keys, sliced into batches)
       ↓
@@ -52,6 +52,7 @@ Agents live in `.claude/agents/`. Each is a markdown file with a YAML frontmatte
 @ticket-extractor (batch 2 … N)  → outputs/batches/batch-NN.md   [reads frozen taxonomy]
       ↓
 scripts/build_dataset.py   → outputs/dataset.jsonl + outputs/extraction.md + outputs/dataquality.md
+                             (batch files in outputs/batches/ are deleted after successful merge)
       ↓
 @aggregator (runs build_dataset.py then aggregate.py) → outputs/aggregates.md
       ↓
@@ -69,16 +70,22 @@ is the single most important quality guardrail in the pipeline — do not skip i
 
 ## Batch configuration
 
-- `BATCH_SIZE = 30` (default). ~169 tickets → 6 batches (last batch ~19).
-- Tune `BATCH_SIZE` down if a single extractor run gets large or slow; the pipeline is
-  correct for any batch size. Batches are sliced deterministically by the indexer
+- `BATCH_SIZE = 50` (default). Tune down if a single extractor run gets large or slow; the
+  pipeline is correct for any batch size. Batches are sliced deterministically by the indexer
   (`ORDER BY key ASC`), so slices never overlap and re-running one batch is safe.
 
-### The JQL (source of truth)
+### JQL (user-supplied at runtime)
+
+The user provides the JQL when running `/analyze-svceng-devices`. The skill must ask for it
+at the start and confirm before proceeding. There is no hardcoded default — the JQL is
+scoped to whatever the user needs to analyse. Example:
 
 ```
 project = "SVCENG" AND labels = issue_device AND createdDate >= startOfYear() ORDER BY key ASC
 ```
+
+The ticket-indexer receives the confirmed JQL and appends `ORDER BY key ASC` if not already
+present (required for deterministic batch slicing).
 
 ---
 
@@ -86,8 +93,8 @@ project = "SVCENG" AND labels = issue_device AND createdDate >= startOfYear() OR
 
 Every extractor invocation emits **one JSON object per ticket** using exactly these fields.
 Do not add, rename, or drop fields. `outputs/batches/batch-NN.md` contains a single fenced
-```json array of these objects (this block is the machine-readable source of truth; the
-scripts parse it).
+```json array of these objects (machine-readable source of truth during the run; the scripts
+parse and merge them, then delete the batch files).
 
 ```json
 {
@@ -138,6 +145,7 @@ expected. Never fabricate a customer name, root cause, or resolution.
 - All output files must be saved to `./outputs/` — never write to the repo root.
 - Per-batch extractor output goes to `./outputs/batches/batch-NN.md` (zero-padded). An
   extractor **overwrites** its own batch file on re-run; it never appends to a shared file.
+  These are temporary — `build_dataset.py` deletes them after a successful merge.
 - Any script invoked by an agent while running must live in `./scripts/` — never write
   scripts to the repo root.
 - All counting/aggregation is done by the scripts in `./scripts/`, never by an agent reading

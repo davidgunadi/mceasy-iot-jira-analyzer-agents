@@ -1,1 +1,10 @@
 .DS_Store
+.obsidian/
+.claude/settings.local.json
+
+# Ignore generated analysis output, but keep the folder skeleton
+outputs/**
+!outputs/
+!outputs/.gitkeep
+!outputs/batches/
+!outputs/batches/.gitkeep
