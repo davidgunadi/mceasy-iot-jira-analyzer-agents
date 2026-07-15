@@ -13,16 +13,13 @@ schema, rules, and batch configuration.
 
 ## Your Job
 
-- Input: the batch size (default 30) and the JQL from `CLAUDE.md`.
-- Run the JQL via the Atlassian/Jira connector:
-
-  ```
-  project = "SVCENG" AND labels = issue_device AND createdDate >= startOfYear() ORDER BY key ASC
-  ```
-
+- Input: the JQL and batch size — both passed by the orchestrator. Do not use defaults or
+  look them up; the orchestrator confirms them with the user before invoking you.
+- Ensure `ORDER BY key ASC` is in the JQL (append if missing — required for stable batches).
+- Run the JQL via the Atlassian/Jira connector.
 - Retrieve **only** `key`, `created`, and `status` for each issue. Do NOT fetch descriptions
   or comments here — this step must stay light. Paginate until every matching issue is
-  collected (the count should be ~169; report the real number).
+  collected; report the real count.
 - Partition the ordered keys into batches of the given size (batch 1 = first N keys, etc.).
 
 ## Output Format
@@ -48,8 +45,8 @@ Generated: <date>
 ## Rules
 
 - `ORDER BY key ASC` is mandatory so batches are stable and non-overlapping across re-runs.
-- If the total count differs a lot from ~169, say so in your return summary — the label or
-  date window may have changed.
+- If the result count is zero or unexpectedly large, say so in your return summary — the JQL
+  may need adjusting.
 - Save only to `./outputs/`. Write in English.
 
 ## Return to orchestrator (compact only)

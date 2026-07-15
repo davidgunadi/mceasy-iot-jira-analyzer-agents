@@ -1,13 +1,13 @@
 # McEasy SVCENG Device-Ticket Analysis — Claude Agents
 
-**Version:** 1.0.0 — see [CHANGELOG.md](CHANGELOG.md)
+**Version:** 1.1.0 — see [CHANGELOG.md](CHANGELOG.md)
 
-A Claude Code multi-agent pipeline that pulls the ~169 `SVCENG` Jira tickets labelled
-`issue_device` (created this year), extracts a structured record per ticket from its title,
-description **and** comments, and produces a health-scan report: recurring patterns, whether
-tickets carry sufficient root-cause analysis, and prioritised recommendations. The heavy
-fetching runs inside isolated subagents so the analysis stays reliable across all 169 tickets
-without overflowing context, and each batch can be re-run on its own.
+A Claude Code multi-agent pipeline that pulls Jira tickets matching a user-supplied JQL
+query, extracts a structured record per ticket from its title, description **and** comments,
+and produces a health-scan report: recurring patterns, whether tickets carry sufficient
+root-cause analysis, and prioritised recommendations. The heavy fetching runs inside isolated
+subagents so the analysis stays reliable across large ticket volumes without overflowing
+context, and each batch can be re-run on its own.
 
 ---
 
@@ -62,8 +62,8 @@ In Claude Code, run:
 /analyze-svceng-devices
 ```
 
-Claude explains the pipeline, checks the connector is available, and confirms the batch size
-and JQL before starting. It then:
+Claude will ask you for the JQL query to run, then confirm the batch size before starting.
+It then:
 
 1. Indexes all matching ticket keys and slices them into batches.
 2. Extracts batch 1, proposes a `symptom_category` vocabulary, and **pauses** so you can
@@ -74,11 +74,12 @@ and JQL before starting. It then:
 
 ### Tweak and repeat
 
-Because each batch writes its own file (`outputs/batches/batch-NN.md`) and the dataset is
-rebuilt from those files, you can redo any single batch — just re-invoke the extractor for
-that batch number; it overwrites its file. Then re-run the aggregator + analyst. The
+Each batch writes its own file (`outputs/batches/batch-NN.md`) while the run is in progress,
+so you can safely redo any single batch — re-invoke the extractor for that batch number and
+it overwrites its file. Once `build_dataset.py` runs successfully, it merges all batch files
+into `dataset.jsonl` and `extraction.md`, then deletes the batch files. The
 `outputs/dataquality.md` report flags any tickets that are in the index but missing from the
-extracted data, so you know exactly which batch to redo.
+extracted data, so you know exactly which batch to redo before the merge step.
 
 ---
 
@@ -93,7 +94,7 @@ mceasy-svceng-device-analysis/
 ├── outputs/                           # All generated files (gitignored)
 │   ├── ticket-index.md                #  ← ticket-indexer
 │   ├── batches/
-│   │   └── batch-NN.md                #  ← ticket-extractor (one per batch)
+│   │   └── batch-NN.md                #  ← ticket-extractor (temporary; deleted after merge)
 │   ├── taxonomy.md                    #  ← frozen symptom_category vocabulary
 │   ├── dataset.jsonl                  #  ← build_dataset.py (merged, machine-readable)
 │   ├── extraction.md                  #  ← build_dataset.py (merged, human-readable)
@@ -101,7 +102,7 @@ mceasy-svceng-device-analysis/
 │   ├── aggregates.md                  #  ← aggregate.py (all counts)
 │   └── report.md                      #  ← analyst (final insight report)
 ├── scripts/
-│   ├── build_dataset.py               # merges batch files → dataset + readable view + QA
+│   ├── build_dataset.py               # merges batch files → dataset + readable view + QA, then deletes batch files
 │   └── aggregate.py                   # deterministic counts → aggregates.md
 └── .claude/
     ├── settings.json

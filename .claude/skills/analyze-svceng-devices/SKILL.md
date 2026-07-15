@@ -8,9 +8,8 @@ description: >
 
 Greet the user and explain the pipeline before starting:
 
-"I'll run a health-scan analysis over the SVCENG `issue_device` tickets (~169, this year) using
-a multi-agent pipeline. Each heavy step runs in its own isolated context, so this stays
-reliable across all the tickets:
+"I'll run a health-scan analysis over your Jira tickets using a multi-agent pipeline. Each
+heavy step runs in its own isolated context, so this stays reliable at any scale:
 
 1. 🗂️ **ticket-indexer** — lists every matching ticket key and slices them into batches
 2. 🔎 **ticket-extractor** — run once per batch; reads each ticket's title, description **and
@@ -19,17 +18,16 @@ reliable across all the tickets:
 4. 🧮 **aggregator** — merges the batches and computes all the counts in code
 5. 🧠 **analyst** — writes the final report: patterns, RCA gaps, recommendations
 
-Before we start:
-- Confirm the **Atlassian/Jira connector is connected** in this Claude Code session (I need it
-  to read the tickets).
-- **Batch size?** Default is 30 (~6 batches). Smaller = lighter per-batch context.
-- The JQL I'll use is `project = \"SVCENG\" AND labels = issue_device AND createdDate >= startOfYear()`.
-  Tell me if that's not right."
+Before we start, I need two things:
+- **What's your JQL?** (e.g. `project = \"SVCENG\" AND labels = issue_device AND createdDate >= startOfYear()`)
+- **Batch size?** Default is 50. Smaller = lighter per-batch context. Also confirm the
+  **Atlassian/Jira connector is connected** in this Claude Code session."
 
-Once the user confirms, run the pipeline in this strict order:
+Once the user provides the JQL and confirms, run the pipeline in this strict order:
 
-1. **@ticket-indexer** → writes `outputs/ticket-index.md`. Report the total count and number
-   of batches. If the count is wildly off from ~169, pause and check with the user.
+1. **@ticket-indexer** (pass the confirmed JQL and batch size) → writes `outputs/ticket-index.md`.
+   Report the total count and number of batches. If the count is zero, pause and check the JQL
+   with the user.
 
 2. **@ticket-extractor (batch 1)** → writes `outputs/batches/batch-01.md` and returns a
    **proposed symptom-category vocabulary** with one-line definitions.

@@ -186,6 +186,19 @@ def main():
     if problems:
         print(f"validation problems: {len(problems)} (see dataquality.md)")
 
+    # Delete batch files after a successful merge (no load errors and all records written).
+    # Keeps outputs/ clean; re-run safety lives in the batch files only during the run.
+    if not load_errors:
+        deleted = 0
+        for bf in batch_files:
+            try:
+                bf.unlink()
+                deleted += 1
+            except OSError:
+                pass
+        if deleted:
+            print(f"deleted {deleted} batch file(s) from {BATCH_DIR}")
+
 
 if __name__ == "__main__":
     main()

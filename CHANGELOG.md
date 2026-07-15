@@ -7,6 +7,22 @@ and versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-07-15
+
+### Added
+
+- Agents: `ticket-indexer`, `ticket-extractor`, `aggregator`, `analyst` in `.claude/agents/`.
+- Skill `/analyze-svceng-devices` in `.claude/skills/` orchestrating the full pipeline.
+
+### Changed
+
+- JQL is now user-supplied at runtime (skill prompts for it); no hardcoded query. The
+  pipeline works with any JQL. `ticket-indexer` receives JQL + batch size from the
+  orchestrator instead of reading them from `CLAUDE.md`.
+- Default `BATCH_SIZE` increased from 30 to 50.
+- `build_dataset.py` now deletes `outputs/batches/batch-*.md` after a successful merge,
+  leaving `outputs/` clean. Batch files remain on disk during the run for re-run safety.
+
 ## [1.0.0] - 2026-07-15
 
 ### Added
