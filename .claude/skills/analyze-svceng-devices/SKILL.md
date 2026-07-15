@@ -18,12 +18,16 @@ heavy step runs in its own isolated context, so this stays reliable at any scale
 4. 🧮 **aggregator** — merges the batches and computes all the counts in code
 5. 🧠 **analyst** — writes the final report: patterns, RCA gaps, recommendations
 
-Before we start, I need two things:
-- **What's your JQL?** (e.g. `project = \"SVCENG\" AND labels = issue_device AND createdDate >= startOfYear()`)
+Before we start, I need a couple of things:
+- **What's your JQL?** If you don't have one, I can use the default:
+  `project = \"SVCENG\" AND labels = issue_device AND createdDate >= startOfYear()`
 - **Batch size?** Default is 50. Smaller = lighter per-batch context. Also confirm the
   **Atlassian/Jira connector is connected** in this Claude Code session."
 
-Once the user provides the JQL and confirms, run the pipeline in this strict order:
+If the user does not supply a JQL, explicitly propose the default above and wait for a yes/no
+before proceeding. Do not assume approval.
+
+Once the JQL is confirmed (custom or default), run the pipeline in this strict order:
 
 1. **@ticket-indexer** (pass the confirmed JQL and batch size) → writes `outputs/ticket-index.md`.
    Report the total count and number of batches. If the count is zero, pause and check the JQL
