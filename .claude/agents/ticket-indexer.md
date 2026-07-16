@@ -16,7 +16,15 @@ schema, rules, and batch configuration.
 - Input: the JQL and batch size — both passed by the orchestrator. Do not use defaults or
   look them up; the orchestrator confirms them with the user before invoking you.
 - Ensure `ORDER BY key ASC` is in the JQL (append if missing — required for stable batches).
-- Run the JQL via the Atlassian/Jira connector.
+- Run the JQL via the Atlassian/Jira connector. The Jira MCP tools are **not** guaranteed to
+  be named with any specific prefix — the namespace is a per-connection identifier (often a
+  UUID) that varies by environment and may also be deferred. Do not hardcode or guess the full
+  tool name. Instead:
+  1. If a tool ending in `searchJiraIssuesUsingJql` is not already visible in your tool list,
+     use `ToolSearch` with a query like `"jira"` to load it.
+  2. Call whichever tool you find whose name ends with that suffix, regardless of namespace prefix.
+  3. If no such tool exists after searching, stop and report that the Jira connector is not
+     available — do not fabricate results.
 - Retrieve **only** `key`, `created`, and `status` for each issue. Do NOT fetch descriptions
   or comments here — this step must stay light. Paginate until every matching issue is
   collected; report the real count.

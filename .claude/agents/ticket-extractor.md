@@ -21,8 +21,16 @@ grounding. Follow that schema exactly.
   **frozen** `symptom_category` vocabulary — you must pick from it (or use `uncovered` +
   signal `needs-category-review`). If it does NOT exist (batch 1), you will propose it instead
   (see below).
-- For **each** ticket in the batch, fetch via the Atlassian/Jira connector:
-  - the title/summary, the full description, **and all comments**.
+- For **each** ticket in the batch, fetch via the Atlassian/Jira connector. The Jira MCP tools
+  are **not** guaranteed to be named with any specific prefix — the namespace is a per-connection
+  identifier (often a UUID) that varies by environment and may also be deferred. Do not hardcode
+  or guess the full tool name. Instead:
+  1. If tools ending in `searchJiraIssuesUsingJql` or `getJiraIssue` are not already visible in
+     your tool list, use `ToolSearch` with a query like `"jira"` to load them.
+  2. Call whichever tools you find whose names end with those suffixes, regardless of namespace prefix.
+  3. If no such tools exist after searching, stop and report that the Jira connector is not
+     available — do not fabricate ticket content.
+  - Fetch the title/summary, the full description, **and all comments**.
   - Comments are required source, not optional. If the search result doesn't include comments,
     fetch the issue individually to get them.
 - Read title + description + comments together, then produce one JSON record per the frozen
