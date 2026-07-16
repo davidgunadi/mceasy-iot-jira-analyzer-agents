@@ -1,6 +1,6 @@
 # McEasy SVCENG Device-Ticket Analysis — Claude Agents
 
-**Version:** 1.1.0 — see [CHANGELOG.md](CHANGELOG.md)
+**Version:** 1.1.1 — see [CHANGELOG.md](CHANGELOG.md)
 
 A Claude Code multi-agent pipeline that pulls Jira tickets matching a user-supplied JQL
 query, extracts a structured record per ticket from its title, description **and** comments,

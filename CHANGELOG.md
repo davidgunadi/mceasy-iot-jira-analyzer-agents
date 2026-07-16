@@ -7,6 +7,15 @@ and versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-07-16
+
+### Fixed
+
+- `ticket-indexer` and `ticket-extractor` now discover Jira MCP tools at runtime via
+  `ToolSearch` instead of assuming a fixed namespace prefix. The connector namespace is a
+  per-connection UUID that varies by environment and may also be deferred; hardcoding it
+  caused silent failures when the prefix differed.
+
 ## [1.1.0] - 2026-07-15
 
 ### Added
